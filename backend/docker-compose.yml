@@ -1,0 +1,12 @@
+services:
+  domek:
+    build: .
+    container_name: domek
+    environment:
+      - REGION=${REGION?region not set}
+      - SNS_TOPIC_ARN=${SNS_TOPIC_ARN?SNS topic not set}
+    image: domek/backend:latest
+    ports:
+      - 3333:3333
+    volumes:
+      - ./.aws:/root/.aws:ro
