@@ -24,3 +24,6 @@ go.work.sum
 # Secrets
 .aws/
 .env
+
+# Executable
+backend
