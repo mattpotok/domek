@@ -15,6 +15,7 @@ const KiB = 1024
 
 const REGION_ENV = "REGION"
 const SNS_TOPIC_ARN_ENV = "SNS_TOPIC_ARN"
+const TELEGRAM_BOT_TOKEN_ENV = "TELEGRAM_BOT_TOKEN"
 
 type Event struct {
 	What  string `json:"what"`

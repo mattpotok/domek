@@ -6,10 +6,12 @@ import (
 	"time"
 )
 
+// TODO generalize this to take as input a string
 type Notifier interface {
 	Notify(event Event)
 }
 
+// TODO add a comment about this limit
 const sns_max_daily_emails = 30
 
 type SnsEmailNotifier struct {
@@ -58,7 +60,7 @@ func (notifier *SnsEmailNotifier) processEvent(event Event) {
 		notifier.numEmailsSent = 0
 	}
 
-	if event.What == "timer" && event.Where == "domek" && event.Why == "tick" {
+	if len(notifier.pendingEvents) > 0 && event.What == "timer" && event.Where == "domek" && event.Why == "tick" {
 		message := "List of pending events"
 		for _, pendingEvent := range notifier.pendingEvents {
 			message += fmt.Sprintf("\n- %s", pendingEvent.toNotifyString())

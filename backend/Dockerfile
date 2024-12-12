@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # Build application from source
 FROM golang:latest AS build-stage
 
@@ -13,7 +11,7 @@ COPY *.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /domek
 
 # Deploy application to lean image
-FROM gcr.io/distroless/base-debian12 AS release-stage
+FROM gcr.io/distroless/static-debian12 AS release-stage
 
 WORKDIR /
 
