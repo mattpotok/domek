@@ -1,63 +1,26 @@
 package finance
 
+/* TODO
+ * - CapitalOne may be failing with timeout errors for some reason
+ */
+
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/mattpotok/domek/backend/internal/common"
 	"github.com/playwright-community/playwright-go"
 )
 
-type CD struct {
-	Term int    `json:"term"`
-	Rate string `json:"rate"`
-}
+func fetchAllyCDRates(ctx playwright.BrowserContext) (*Institution, error) {
+	ally := newInstitution("Ally")
 
-type Institution struct {
-	Name string `json:"name"`
-	CDs  []CD   `json:"cds"`
-}
-
-type channelData struct {
-	Index       int
-	Institution *Institution
-	Error       error
-}
-
-const USER_AGENT string = "Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0"
-
-func (inst *Institution) SetRate(term int, rate string) bool {
-	for i, cdRate := range inst.CDs {
-		if cdRate.Term == term {
-			inst.CDs[i].Rate = rate
-			return true
-		}
-	}
-
-	return false
-}
-
-func NewInstitution(name string) *Institution {
-	terms := []int{3, 6, 9, 12, 18, 24, 30, 36, 48, 60}
-
-	cds := make([]CD, len(terms))
-	for i, term := range terms {
-		cds[i] = CD{Term: term, Rate: "N/A"}
-	}
-
-	return &Institution{Name: name, CDs: cds}
-}
-
-func fetchAllyCDRates(context playwright.BrowserContext) (*Institution, error) {
-	ally := NewInstitution("Ally")
-
-	page, err := context.NewPage()
+	page, err := ctx.NewPage()
 	if err != nil {
 		return ally, err
 	}
-	defer page.Close()
 
 	url := "https://www.ally.com/bank/high-yield-cd/"
 	_, err = page.Goto(url, playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad})
@@ -65,9 +28,8 @@ func fetchAllyCDRates(context playwright.BrowserContext) (*Institution, error) {
 		return ally, err
 	}
 
-	// FIXME rename this
-	locator := page.Locator("//div[@data-product='HYCD']").First()
-	err = locator.WaitFor(playwright.LocatorWaitForOptions{
+	div := page.Locator("//div[@data-product='HYCD']").First()
+	err = div.WaitFor(playwright.LocatorWaitForOptions{
 		State:   playwright.WaitForSelectorStateVisible,
 		Timeout: playwright.Float(30_000),
 	})
@@ -75,7 +37,7 @@ func fetchAllyCDRates(context playwright.BrowserContext) (*Institution, error) {
 		return ally, err
 	}
 
-	anchors, err := locator.Locator("a").All()
+	anchors, err := div.Locator("a").All()
 	if err != nil {
 		return ally, err
 	}
@@ -88,12 +50,12 @@ func fetchAllyCDRates(context playwright.BrowserContext) (*Institution, error) {
 
 		parts := strings.Split(id, "-")
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("expected 'id' to contain one '-'")
+			return ally, fmt.Errorf("expected 'id' to contain one '-'")
 		}
 
 		term, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return nil, err
+			return ally, err
 		}
 
 		rate, err := anchor.GetAttribute("data-rate")
@@ -101,20 +63,23 @@ func fetchAllyCDRates(context playwright.BrowserContext) (*Institution, error) {
 			return ally, err
 		}
 
-		ally.SetRate(term, rate+"%")
+		ally.setRate(term, strings.TrimSuffix(rate, "%"))
+	}
+
+	if err := page.Close(); err != nil {
+		return ally, err
 	}
 
 	return ally, nil
 }
 
 func fetchCapitalOneCDRates(context playwright.BrowserContext) (*Institution, error) {
-	capitalOne := NewInstitution("CapitalOne")
+	capitalOne := newInstitution("CapitalOne")
 
 	page, err := context.NewPage()
 	if err != nil {
 		return capitalOne, err
 	}
-	defer page.Close()
 
 	url := "https://www.capitalone.com/bank/cds/online-cds/"
 	_, err = page.Goto(url, playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad})
@@ -144,14 +109,18 @@ func fetchCapitalOneCDRates(context playwright.BrowserContext) (*Institution, er
 			return capitalOne, err
 		}
 
-		capitalOne.SetRate(months, rate)
+		capitalOne.setRate(months, strings.TrimSuffix(rate, "%"))
+	}
+
+	if err := page.Close(); err != nil {
+		return capitalOne, err
 	}
 
 	return capitalOne, nil
 }
 
 func fetchDiscoverCDRates(context playwright.BrowserContext) (*Institution, error) {
-	discover := NewInstitution("Discover")
+	discover := newInstitution("Discover")
 
 	page, err := context.NewPage()
 	if err != nil {
@@ -162,7 +131,11 @@ func fetchDiscoverCDRates(context playwright.BrowserContext) (*Institution, erro
 	url := "https://www.discover.com/online-banking/cd/"
 	_, err = page.Goto(url, playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad})
 	if err != nil {
-		return discover, err
+		// Discover website sometimes gets stuck loading for a couple of minutes even though
+		// data on page seems to have loaded. Ignore the 'Timeout' error and fetch the present CD rates.
+		if !strings.Contains(err.Error(), "Timeout") {
+			return discover, err
+		}
 	}
 
 	items, err := page.Locator("//div[@id='lSSlideWrapper']/ul/li").All()
@@ -185,14 +158,14 @@ func fetchDiscoverCDRates(context playwright.BrowserContext) (*Institution, erro
 			return discover, err
 		}
 
-		discover.SetRate(months, rate+"%")
+		discover.setRate(months, strings.TrimSuffix(rate, "%"))
 	}
 
 	return discover, nil
 }
 
 func fetchFidelityCDRates(context playwright.BrowserContext) (*Institution, error) {
-	fidelity := NewInstitution("Fidelity")
+	fidelity := newInstitution("Fidelity")
 
 	page, err := context.NewPage()
 	if err != nil {
@@ -230,16 +203,18 @@ func fetchFidelityCDRates(context playwright.BrowserContext) (*Institution, erro
 		rate, err := rateDiv.TextContent()
 		if err != nil {
 			return fidelity, err
+		} else if rate == "--" {
+			continue
 		}
 
-		fidelity.SetRate(term, rate+"%")
+		fidelity.setRate(term, strings.TrimSuffix(rate, "%"))
 	}
 
 	return fidelity, nil
 }
 
 func fetchSchwabCDRates(context playwright.BrowserContext) (*Institution, error) {
-	schwab := NewInstitution("Schwab")
+	schwab := newInstitution("Schwab")
 
 	page, err := context.NewPage()
 	if err != nil {
@@ -301,46 +276,27 @@ func fetchSchwabCDRates(context playwright.BrowserContext) (*Institution, error)
 		var rate string
 		fmt.Sscanf(rateStr, "%s APY", &rate)
 
-		schwab.SetRate(term, rate)
+		schwab.setRate(term, strings.TrimSuffix(rate, "%"))
 	}
 
 	return schwab, nil
 }
 
-/* Available bank rates
- * - Ally       - 3 | 6 | 9 | 12 | 18 | -- | -- | 36 | -- | 60
- * - CapitalOne - - | 6 | 9 | 12 | 18 | 24 | 30 | 36 | 48 | 60
- * - Discover   - 3 | 6 | 9 | 12 | 18 | 24 | 30 | 36 | 48 | 60
- * - Fidelity   - 3 | 6 | 9 | 12 | 18 | 24 | -- | 36 | 48 | 60
- * - Schwab     - 3 | 6 | 9 | 12 | 18 | 24 | -- | -- | -- | --
- */
-func FetchCDRates() ([]Institution, error) {
-	// TODO remote the `Fatalln`s
-	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}})
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+func FetchCDRates() ([]common.Result[*Institution], error) {
 	pw, err := playwright.Run()
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
 	options := playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(true)}
 	browser, err := pw.Chromium.Launch(options)
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
-	// TODO document fix https://github.com/microsoft/playwright/issues/27600#issuecomment-2219657708
-	//
-	userAgent := "Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0"
-	extraHttpHeaders := map[string]string{
-		"sec-ch-ua": `"Not=A?Brand";v="8", "Chromium";v="129"`,
-	}
-	context, err := browser.NewContext(playwright.BrowserNewContextOptions{UserAgent: &userAgent, ExtraHttpHeaders: extraHttpHeaders})
+	browserContext, err := browser.NewContext(playwright.BrowserNewContextOptions{UserAgent: &userAgent, ExtraHttpHeaders: extraHttpHeaders})
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
 	fetches := [](func(playwright.BrowserContext) (*Institution, error)){
@@ -351,7 +307,7 @@ func FetchCDRates() ([]Institution, error) {
 		fetchSchwabCDRates,
 	}
 
-	channel := make(chan channelData)
+	institutions := make([]common.Result[*Institution], len(fetches))
 	var wg sync.WaitGroup
 
 	for i, fetch := range fetches {
@@ -359,31 +315,23 @@ func FetchCDRates() ([]Institution, error) {
 
 		go func() {
 			defer wg.Done()
-			institution, err := fetch(context)
-			channel <- channelData{Index: i, Institution: institution, Error: err}
+			institution, err := fetch(browserContext)
+			institutions[i] = common.Result[*Institution]{Value: institution, Error: err}
 		}()
 	}
 
-	go func() {
-		wg.Wait()
-		close(channel)
-	}()
+	wg.Wait()
 
-	institutions := make([]Institution, len(fetches))
-	for data := range channel {
-		institutions[data.Index] = *data.Institution
-		if data.Error != nil {
-			// TODO combine the errors into one here
-			fmt.Println(err)
-		}
+	if err := browserContext.Close(); err != nil {
+		return nil, err
 	}
 
 	if err = browser.Close(); err != nil {
-		return institutions, err
+		return nil, err
 	}
 
 	if err = pw.Stop(); err != nil {
-		return institutions, err
+		return nil, err
 	}
 
 	return institutions, err

@@ -9,25 +9,40 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/playwright-community/playwright-go"
 )
 
 func main() {
+	start()
+}
+
+func initialize_playwright() {
+	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}})
+	if err != nil {
+		log.Fatalf("Error installing playwright - %s", err)
+	}
+}
+
+func start() {
 	ctx := context.Background()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	region := getEnvironmentVariable(REGION_ENV)
-	snsTopicArn := getEnvironmentVariable(SNS_TOPIC_ARN_ENV)
+	initialize_playwright()
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithSharedConfigProfile("domek"))
-	if err != nil {
-		log.Fatalf("Unable to load AWS configuration - %s", err)
-	}
+	/*
+		region := getEnvironmentVariable(REGION_ENV)
+		snsTopicArn := getEnvironmentVariable(SNS_TOPIC_ARN_ENV)
 
-	snsActions := NewSnsActions(cfg, region)
-	notifier := NewSnsEmailNotifier(snsActions, snsTopicArn)
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithSharedConfigProfile("domek"))
+		if err != nil {
+			log.Fatalf("Unable to load AWS configuration - %s", err)
+		}
 
-	_, err = NewTelegramBot(ctx)
+		snsActions := NewSnsActions(cfg, region)
+		notifier := NewSnsEmailNotifier(snsActions, snsTopicArn)
+	*/
+
+	_, err := NewTelegramBot(ctx)
 	if err != nil {
 		log.Fatalf("Unable to initialize Telegram bot - %s", err)
 	}
@@ -35,16 +50,18 @@ func main() {
 	// scheduler := cron.New()
 	// scheduler.AddFunc("0 "
 
-	ticker := NewTicker("19:00:00", notifier)
-	go ticker.Run()
+	/*
+		ticker := NewTicker("19:00:00", notifier)
+		go ticker.Run()
 
-	// TODO move this out into `api.go` and shove into a go thread
-	ctrl := &Controller{
-		Notifier: notifier,
-	}
+		// TODO move this out into `api.go` and shove into a go thread
+		ctrl := &Controller{
+			Notifier: notifier,
+		}
 
-	http.HandleFunc("POST /events", ctrl.PostEvent)
-	http.HandleFunc("GET /finance/cds", ctrl.GetFinanceCDs)
+		http.HandleFunc("POST /events", ctrl.PostEvent)
+		http.HandleFunc("GET /finance/cds", ctrl.GetFinanceCDs)
+	*/
 
 	// TODO look up how to do this in a go thread
 	err = http.ListenAndServe(":3333", nil)
@@ -84,6 +101,7 @@ func (ctrl *Controller) PostEvent(w http.ResponseWriter, r *http.Request) {
 	// TODO return a success here
 }
 
+// FIXME
 type CDRates struct {
 	Institution       string `json:"institution"`
 	ThreeMonthRate    string `json:"three_month_rate"`
@@ -93,6 +111,7 @@ type CDRates struct {
 	EighteenMonthRate string `json:"eighteen_month_rate"`
 }
 
+// FIXME
 func (ctrl *Controller) GetFinanceCDs(w http.ResponseWriter, r *http.Request) {
 	log.Println("GET /finance/cds")
 
