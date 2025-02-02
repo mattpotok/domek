@@ -4,15 +4,109 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattpotok/domek/backend/internal/database"
 	"github.com/playwright-community/playwright-go"
 )
 
+// TODO migrate to its own file
+func initialize_database() *sql.DB {
+	db, err := sql.Open("sqlite3", "domek.db")
+	if err != nil {
+		log.Fatalf("Error opening database - %s", err)
+	}
+
+	weatherTable := `
+		CREATE TABLE IF NOT EXISTS weather (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			datetime    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			latitude    REAL NOT NULL,
+			longitude   REAL NOT NULL,
+			humidity    REAL NOT NULL,
+			pressure    REAL NOT NULL,
+			temperature REAL NOT NULL
+		);`
+	_, err = db.Exec(weatherTable)
+	if err != nil {
+		log.Fatalf("Error creating weather table - %s", err)
+	}
+
+	return db
+}
+
+func insertWeather(db *sql.DB, weather *OpenWeatherCurrentWeather) {
+	query := "INSERT INTO weather (latitude, longitude, humidity, pressure, temperature) VALUES (?, ?, ?, ?, ?)"
+	_, err := db.Exec(query, weather.Coord.Lat, weather.Coord.Lon, weather.Main.Humidity, weather.Main.Pressure, weather.Main.Temp)
+	if err != nil {
+		log.Fatalf("Error inserting weather data - %s", err)
+	}
+}
+
+func getWeather(db *sql.DB, start time.Time, end time.Time) {
+	query := "SELECT datetime, temperature FROM weather WHERE datetime BETWEEN ? AND ?"
+	rows, err := db.Query(query, start, end)
+	if err != nil {
+		log.Fatalf("Error querying weather data - %s", err)
+	}
+
+	for rows.Next() {
+		var datetime string
+		var temperature float64
+		err := rows.Scan(&datetime, &temperature)
+		if err != nil {
+			log.Fatalf("Error scanning weather data - %s", err)
+		}
+
+		fmt.Println(datetime, temperature)
+	}
+}
+
 func main() {
+	db, err := database.NewDB()
+	if err != nil {
+		log.Fatalf("Error initializing database - %s", err)
+	}
+
+	// weather := getCurrentWeather()
+	// insertWeather(db, weather)
+
+	// start := time.Date(2024, 12, 30, 0, 0, 0, 0, time.UTC)
+	// end := time.Date(2024, 12, 30, 1, 0, 0, 0, time.UTC)
+
+	// getWeather(db, start, end)
+
+	// db.Close()
+
+	// TODO
+
+	/*
+		var rate float64
+		_, err := fmt.Sscanf("/finance_effective_rates 1", "/finance_effective_rates %f", &rate)
+		if err != nil {
+			log.Fatalf("Error parsing rate - %s", err)
+		}
+
+		fmt.Println(rate)
+	*/
+
+	ctx := context.Background()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	initialize_playwright()
+
+	_, err = NewTelegramBot(ctx, db)
+	if err != nil {
+		log.Fatalf("Unable to initialize Telegram bot - %s", err)
+	}
+
 	start()
 }
 
@@ -24,11 +118,6 @@ func initialize_playwright() {
 }
 
 func start() {
-	ctx := context.Background()
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	initialize_playwright()
-
 	/*
 		region := getEnvironmentVariable(REGION_ENV)
 		snsTopicArn := getEnvironmentVariable(SNS_TOPIC_ARN_ENV)
@@ -41,11 +130,6 @@ func start() {
 		snsActions := NewSnsActions(cfg, region)
 		notifier := NewSnsEmailNotifier(snsActions, snsTopicArn)
 	*/
-
-	_, err := NewTelegramBot(ctx)
-	if err != nil {
-		log.Fatalf("Unable to initialize Telegram bot - %s", err)
-	}
 
 	// scheduler := cron.New()
 	// scheduler.AddFunc("0 "
@@ -64,7 +148,7 @@ func start() {
 	*/
 
 	// TODO look up how to do this in a go thread
-	err = http.ListenAndServe(":3333", nil)
+	err := http.ListenAndServe(":3333", nil)
 	if err != nil {
 		log.Fatalf("Error starting server - %s", err)
 	}

@@ -1,8 +1,8 @@
 module github.com/mattpotok/domek/backend
 
-go 1.23
+go 1.23.0
 
-toolchain go1.23.3
+toolchain go1.23.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.5
@@ -41,7 +41,9 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-telegram/bot v1.11.1
+	github.com/go-telegram/fsm v0.2.0
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
+	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/playwright-community/playwright-go v0.4702.0 // indirect
 	github.com/robfig/cron/v3 v3.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
