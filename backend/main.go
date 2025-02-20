@@ -14,6 +14,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mattpotok/domek/backend/internal/database"
+	"github.com/mattpotok/domek/backend/internal/telegram"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -102,9 +103,9 @@ func main() {
 
 	initialize_playwright()
 
-	_, err = NewTelegramBot(ctx, db)
+	_, err = telegram.NewTelegram(ctx, db)
 	if err != nil {
-		log.Fatalf("Unable to initialize Telegram bot - %s", err)
+		log.Fatalf("Unable to initialize Telegram - %s", err)
 	}
 
 	start()

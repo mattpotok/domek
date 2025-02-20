@@ -1,10 +1,12 @@
 package database
 
-import "log"
+import (
+	"log"
+)
 
 type Vegetable struct {
 	Id       int
-	HasFruit int
+	HasFruit bool
 	Name     string
 	Quantity int
 	Variety  string
@@ -46,10 +48,8 @@ func (db *DB) InsertVegetable(veg *Vegetable) error {
 }
 
 func (db *DB) GetVegetables() ([]Vegetable, error) {
-	// TODO sort the vegetables by name and then by variety
-	getVegetables := `SELECT * FROM garden;`
-
-	rows, err := db.sql.Query(getVegetables)
+	query := `SELECT * FROM garden;`
+	rows, err := db.sql.Query(query)
 	if err != nil {
 		log.Fatalf("Error getting vegetables - %s", err)
 	}
@@ -67,4 +67,39 @@ func (db *DB) GetVegetables() ([]Vegetable, error) {
 	}
 
 	return veges, nil
+}
+
+func (db *DB) GetVegetablesByYear(year int) ([]Vegetable, error) {
+	query := `SELECT id, hasFruit, name, quantity, variety, year, yield FROM garden WHERE year=?;`
+	rows, err := db.sql.Query(query, year)
+	if err != nil {
+		log.Fatalf("Error getting vegetables - %s", err)
+	}
+
+	var vegetables []Vegetable
+	for rows.Next() {
+		var veg Vegetable
+		err = rows.Scan(&veg.Id, &veg.HasFruit, &veg.Name, &veg.Quantity, &veg.Variety, &veg.Year, &veg.Yield)
+		if err != nil {
+			log.Fatalf("Error scanning vegetable - %s", err)
+		}
+
+		vegetables = append(vegetables, veg)
+	}
+
+	return vegetables, nil
+}
+
+func (db *DB) UpdateVegetable(veg Vegetable) error {
+	query := `
+		UPDATE garden
+		SET hasFruit = ?, name = ?, quantity = ?, variety = ?, year = ?, yield = ?
+		WHERE id = ?;`
+	if _, err := db.sql.Exec(query, veg.HasFruit, veg.Name, veg.Quantity, veg.Variety, veg.Year, veg.Yield, veg.Id); err != nil {
+		return err
+	}
+
+	// TODO check the number of rows affected
+
+	return nil
 }

@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -15,7 +13,6 @@ const KiB = 1024
 
 const REGION_ENV = "REGION"
 const SNS_TOPIC_ARN_ENV = "SNS_TOPIC_ARN"
-const TELEGRAM_BOT_TOKEN_ENV = "TELEGRAM_BOT_TOKEN"
 
 type Event struct {
 	What  string `json:"what"`
@@ -97,13 +94,4 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	}
 
 	return nil
-}
-
-func getEnvironmentVariable(key string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		log.Fatalf("Unable to load environment variable '%s'", key)
-	}
-
-	return val
 }
