@@ -43,6 +43,7 @@ require (
 	github.com/go-telegram/bot v1.11.1
 	github.com/go-telegram/fsm v0.2.0
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/playwright-community/playwright-go v0.4702.0 // indirect
 	github.com/robfig/cron/v3 v3.0.0 // indirect

@@ -26,21 +26,19 @@ type Telegram struct {
 	vegetableField string
 }
 
-func NewTelegram(ctx context.Context, db *database.DB) (*Telegram, error) {
+func NewTelegram(ctx context.Context, cfg *common.TelegramConfig, db *database.DB) (*Telegram, error) {
 	telegram := &Telegram{
 		db:            db,
 		state:         stateDefault,
 		stateHandlers: make(map[int16]bot.HandlerFunc),
 	}
 
-	token := common.GetEnvironmentVariable(telegram_bot_token_env)
-
 	opts := []bot.Option{
 		bot.WithDefaultHandler(telegram.handleMessage),
 	}
 
 	var err error
-	telegram.bot, err = bot.New(token, opts...)
+	telegram.bot, err = bot.New(cfg.BotToken, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattpotok/domek/backend/internal/common"
 	"github.com/mattpotok/domek/backend/internal/database"
 	"github.com/mattpotok/domek/backend/internal/telegram"
 	"github.com/playwright-community/playwright-go"
@@ -71,6 +72,9 @@ func getWeather(db *sql.DB, start time.Time, end time.Time) {
 }
 
 func main() {
+	// TODO pass this around to other places
+	cfg := common.LoadConfig()
+
 	db, err := database.NewDB()
 	if err != nil {
 		log.Fatalf("Error initializing database - %s", err)
@@ -103,7 +107,7 @@ func main() {
 
 	initialize_playwright()
 
-	_, err = telegram.NewTelegram(ctx, db)
+	_, err = telegram.NewTelegram(ctx, cfg.Telegram, db)
 	if err != nil {
 		log.Fatalf("Unable to initialize Telegram - %s", err)
 	}
