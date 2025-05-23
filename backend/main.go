@@ -73,6 +73,7 @@ func getWeather(db *sql.DB, start time.Time, end time.Time) {
 
 func main() {
 	// TODO pass this around to other places
+	common.CreateServiceDirectory()
 	cfg := common.LoadConfig()
 
 	db, err := database.NewDB()
@@ -116,10 +117,13 @@ func main() {
 }
 
 func initialize_playwright() {
-	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}})
+	// TODO check if one needs to install playwright here or not and log a message
+	log.Println("Installing Playwright...")
+	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}, OnlyInstallShell: true})
 	if err != nil {
 		log.Fatalf("Error installing playwright - %s", err)
 	}
+	log.Println("Playwright has been installed/updated.")
 }
 
 func start() {
