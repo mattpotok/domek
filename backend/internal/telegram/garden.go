@@ -272,10 +272,10 @@ func (telegram *Telegram) handleGardenAddVegetableHasFruit(ctx context.Context, 
 	hasFruit = strings.ToLower(hasFruit)
 	telegram.vegetable.HasFruit = hasFruit == "yes"
 
-	text := "Added vegetable\n" + describeVegetables(telegram.vegetable)
+	description := describeVegetables(telegram.vegetable)
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
-		Text:      text,
+		Text:      description,
 		ParseMode: models.ParseModeHTML,
 	})
 
@@ -449,9 +449,13 @@ func (telegram *Telegram) handleGardenUpdateVegetableValue(ctx context.Context, 
 }
 
 // TODO consider making this configurable to allow for any field selection
+// TODO consider renaming this to `getVegetables` rather than describe
 func describeVegetables(vegetables ...database.Vegetable) string {
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)
+
+	l.AppendItem(fmt.Sprintf("Vegetables (%d)", len(vegetables)))
+	l.Indent()
 
 	for _, veg := range vegetables {
 		name := veg.Name
