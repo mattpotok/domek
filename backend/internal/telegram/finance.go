@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -116,50 +115,27 @@ func handleFinanceEffectiveRates(ctx context.Context, b *bot.Bot, update *models
 }
 
 func handleFinanceSavings(ctx context.Context, b *bot.Bot, update *models.Update) {
-	log.Println("Handling command '/finance_savings'...")
+	log.Println("Handling command '/finance_savings_v2'...")
 
-	institutions, err := finance.FetchSavingsAccounts()
-	if err != nil {
-		// TODO improve the error message
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   err.Error(),
-		})
-	}
+	accounts := finance.GetSavingAccounts()
 
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)
 	l.AppendItem("Institutions")
 	l.Indent()
 
-	var maxRate float64 = 0.0
-	for _, result := range institutions {
+	for _, result := range accounts {
 		l.Indent()
 
-		if institution, err := result.Match(); err != nil {
-			line := fmt.Sprintf("%s - %s", institution.Name, err)
+		if account, err := result.Match(); err != nil {
+			line := fmt.Sprintf("%s - %s", account.Name, err)
 			l.AppendItem(line)
 		} else {
-			rate, err := strconv.ParseFloat(institution.Savings, 64)
-			if err == nil && rate > maxRate {
-				maxRate = rate
-			}
-
-			line := fmt.Sprintf("%s - %s%%", institution.Name, institution.Savings)
+			line := fmt.Sprintf("%s - %s%%", account.Name, account.Rate)
 			l.AppendItem(line)
 		}
 
 		l.UnIndent()
-	}
-
-	l.UnIndent()
-	l.AppendItem(fmt.Sprintf("Effective rates for %.2f%%", maxRate))
-	l.Indent()
-
-	for _, taxBracket := range finance.TaxBrackets {
-		effectiveRate := maxRate * (1 - taxBracket/100.0)
-		line := fmt.Sprintf("At %.1f%% - %.2f%%", taxBracket, effectiveRate)
-		l.AppendItem(line)
 	}
 
 	text := fmt.Sprintf("<pre>%s</pre>", l.Render())

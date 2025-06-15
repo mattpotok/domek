@@ -1,9 +1,5 @@
 package finance
 
-/* TODO
- * - CapitalOne may be failing with timeout errors for some reason
- */
-
 import (
 	"fmt"
 	"strconv"
@@ -14,6 +10,7 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// TODO debug this
 func fetchAllyCDRates(ctx playwright.BrowserContext) (*Institution, error) {
 	ally := newInstitution("Ally")
 

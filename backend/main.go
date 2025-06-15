@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -192,32 +191,4 @@ func (ctrl *Controller) PostEvent(w http.ResponseWriter, r *http.Request) {
 	ctrl.Notifier.Notify(event)
 
 	// TODO return a success here
-}
-
-// FIXME
-type CDRates struct {
-	Institution       string `json:"institution"`
-	ThreeMonthRate    string `json:"three_month_rate"`
-	SixMonthRate      string `json:"six_month_rate"`
-	NineMonthRate     string `json:"nine_month_rate"`
-	TwelveMonthRate   string `json:"twelve_month_rate"`
-	EighteenMonthRate string `json:"eighteen_month_rate"`
-}
-
-// FIXME
-func (ctrl *Controller) GetFinanceCDs(w http.ResponseWriter, r *http.Request) {
-	log.Println("GET /finance/cds")
-
-	cdRates := CDRates{
-		Institution:       "Ally",
-		ThreeMonthRate:    "3.00",
-		SixMonthRate:      "4.40",
-		NineMonthRate:     "4.30",
-		TwelveMonthRate:   "4.25",
-		EighteenMonthRate: "4.00",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(cdRates)
 }

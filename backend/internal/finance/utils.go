@@ -1,12 +1,5 @@
 package finance
 
-import (
-	"fmt"
-	"log"
-
-	"github.com/playwright-community/playwright-go"
-)
-
 // The 'sec-ch-ua' header in playwright Chromium by default includes the value "HeadlessChrome";v="X".
 // Certain websites use this header value to detect bots and block access.
 // Source: https://github.com/microsoft/playwright/issues/27600#issuecomment-2219657708
@@ -31,15 +24,27 @@ type CD struct {
 	Rate string `json:"rate"`
 }
 
+type institution interface {
+	getCdRates() ([]CD, error)
+	getName() string
+	getSavingsRate() (string, error)
+}
+
 type Institution struct {
 	Name    string `json:"name"`
 	CDs     []CD   `json:"cds"`
 	Savings string `json:"savings"`
 }
 
-type MaybeInstitution struct {
-	Error       error
-	Institution *Institution
+// TODO consider allowing tiers
+type SavingsAccount struct {
+	Name string `json:"name"`
+	Rate string `json:"rate"`
+}
+
+type CDAccount struct {
+	Name string `json:"name"`
+	CDs  []CD   `json:"cds"`
 }
 
 func newInstitution(name string) *Institution {
@@ -60,44 +65,4 @@ func (inst *Institution) setRate(term int, rate string) bool {
 	}
 
 	return false
-}
-
-func Debug() {
-	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}})
-	// err := playwright.Install(&playwright.RunOptions{Browsers: []string{"firefox"}})
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	pw, err := playwright.Run()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer pw.Stop()
-
-	options := playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(false)}
-	browser, err := pw.Chromium.Launch(options)
-	// browser, err := pw.Firefox.Launch(options)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer browser.Close()
-
-	// TODO document fix https://github.com/microsoft/playwright/issues/27600#issuecomment-2219657708
-	extraHttpHeaders := map[string]string{
-		"sec-ch-ua": `"Not=A?Brand";v="8", "Chromium";v="129"`,
-	}
-	browserContext, err := browser.NewContext(playwright.BrowserNewContextOptions{UserAgent: playwright.String(userAgent), ExtraHttpHeaders: extraHttpHeaders})
-	// context, err := browser.NewContext(playwright.BrowserNewContextOptions{UserAgent: &userAgent})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer browserContext.Close()
-
-	institution, err := FetchDiscoverSavings(browserContext)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Printf("%+v\n", institution)
 }
