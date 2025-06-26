@@ -12,9 +12,9 @@ import (
 )
 
 func (telegram *Telegram) registerFinanceHandlers() []models.BotCommand {
-	telegram.bot.RegisterHandler(bot.HandlerTypeMessageText, "/finance_cds", bot.MatchTypeExact, handleFinanceCDs)
+	telegram.bot.RegisterHandler(bot.HandlerTypeMessageText, "/finance_cds", bot.MatchTypeExact, telegram.handleFinanceCDs)
 	telegram.bot.RegisterHandler(bot.HandlerTypeMessageText, "/finance_effective_rates", bot.MatchTypePrefix, handleFinanceEffectiveRates)
-	telegram.bot.RegisterHandler(bot.HandlerTypeMessageText, "/finance_savings", bot.MatchTypeExact, handleFinanceSavings)
+	telegram.bot.RegisterHandler(bot.HandlerTypeMessageText, "/finance_savings", bot.MatchTypeExact, telegram.handleFinanceSavings)
 
 	return []models.BotCommand{
 		{
@@ -32,34 +32,26 @@ func (telegram *Telegram) registerFinanceHandlers() []models.BotCommand {
 	}
 }
 
-func handleFinanceCDs(ctx context.Context, b *bot.Bot, update *models.Update) {
-	log.Println("Handling comand '/finance_cds'...")
+func (telegram *Telegram) handleFinanceCDs(ctx context.Context, b *bot.Bot, update *models.Update) {
+	log.Println("Handling command '/finance_cds_v2'...")
 
-	institutions, err := finance.FetchCDRates()
-	if err != nil {
-		// TODO improve the error message
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   err.Error(),
-		})
-	}
+	accounts := finance.GetCdAccounts(telegram.client)
 
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)
 	l.AppendItem("Institutions")
 	l.Indent()
 
-	for _, result := range institutions {
+	for _, result := range accounts {
 		l.Indent()
-
-		if institution, err := result.Match(); err != nil {
-			line := fmt.Sprintf("%s - %s", institution.Name, err)
+		if account, err := result.Match(); err != nil {
+			line := fmt.Sprintf("%s - %s", account.Name, err)
 			l.AppendItem(line)
 		} else {
-			l.AppendItem(institution.Name)
-
+			l.AppendItem(account.Name)
 			l.Indent()
-			for _, cd := range institution.CDs {
+
+			for _, cd := range account.CDs {
 				rate := cd.Rate + "%"
 				if cd.Rate == "" {
 					rate = "---"
@@ -67,6 +59,7 @@ func handleFinanceCDs(ctx context.Context, b *bot.Bot, update *models.Update) {
 				line := fmt.Sprintf("%d mo - %s", cd.Term, rate)
 				l.AppendItem(line)
 			}
+
 			l.UnIndent()
 		}
 
@@ -114,10 +107,10 @@ func handleFinanceEffectiveRates(ctx context.Context, b *bot.Bot, update *models
 	})
 }
 
-func handleFinanceSavings(ctx context.Context, b *bot.Bot, update *models.Update) {
-	log.Println("Handling command '/finance_savings_v2'...")
+func (telegram *Telegram) handleFinanceSavings(ctx context.Context, b *bot.Bot, update *models.Update) {
+	log.Println("Handling command '/finance_savings'...")
 
-	accounts := finance.GetSavingAccounts()
+	accounts := finance.GetSavingAccounts(telegram.client)
 
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)

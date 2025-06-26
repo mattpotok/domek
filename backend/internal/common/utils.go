@@ -26,3 +26,14 @@ func CreateServiceDirectory() {
 		os.Exit(1)
 	}
 }
+
+func Find[T any](slice []T, predicate func(T) bool) (T, bool) {
+	var zero T
+	for _, element := range slice {
+		if predicate(element) {
+			return element, true
+		}
+	}
+
+	return zero, false
+}

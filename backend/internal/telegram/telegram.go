@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -15,6 +17,7 @@ const telegram_bot_token_env = "TELEGRAM_BOT_TOKEN"
 
 type Telegram struct {
 	bot           *bot.Bot
+	client        *http.Client
 	db            *database.DB
 	state         int16
 	stateHandlers map[int16]bot.HandlerFunc
@@ -28,6 +31,7 @@ type Telegram struct {
 
 func NewTelegram(ctx context.Context, cfg *common.TelegramConfig, db *database.DB) (*Telegram, error) {
 	telegram := &Telegram{
+		client:        &http.Client{Timeout: 5 * time.Second},
 		db:            db,
 		state:         stateDefault,
 		stateHandlers: make(map[int16]bot.HandlerFunc),

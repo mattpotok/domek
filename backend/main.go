@@ -15,7 +15,6 @@ import (
 	"github.com/mattpotok/domek/backend/internal/common"
 	"github.com/mattpotok/domek/backend/internal/database"
 	"github.com/mattpotok/domek/backend/internal/telegram"
-	"github.com/playwright-community/playwright-go"
 )
 
 // TODO migrate to its own file
@@ -105,24 +104,12 @@ func main() {
 	ctx := context.Background()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	initialize_playwright()
-
 	_, err = telegram.NewTelegram(ctx, cfg.Telegram, db)
 	if err != nil {
 		log.Fatalf("Unable to initialize Telegram - %s", err)
 	}
 
 	start()
-}
-
-func initialize_playwright() {
-	// TODO check if one needs to install playwright here or not and log a message
-	log.Println("Installing Playwright...")
-	err := playwright.Install(&playwright.RunOptions{Browsers: []string{"chromium"}, OnlyInstallShell: true})
-	if err != nil {
-		log.Fatalf("Error installing playwright - %s", err)
-	}
-	log.Println("Playwright has been installed/updated.")
 }
 
 func start() {
