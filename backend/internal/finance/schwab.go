@@ -28,6 +28,10 @@ func (schwab *schwab) getCdAccount(client *http.Client) (*CDAccount, error) {
 		return account, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return account, errors.New("unexpected status code: " + resp.Status)
+	}
+
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return account, err

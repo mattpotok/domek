@@ -58,6 +58,10 @@ func getAllyProducts(client *http.Client) (*allyProducts, error) {
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("unexpected status code: " + resp.Status)
+	}
+
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

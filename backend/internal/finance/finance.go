@@ -14,6 +14,7 @@ func GetCdAccounts(client *http.Client) []common.Result[*CDAccount] {
 		&discover{},
 		&fidelity{},
 		&schwab{},
+		&vanguard{},
 	}
 
 	accounts := make([]common.Result[*CDAccount], len(institutions))

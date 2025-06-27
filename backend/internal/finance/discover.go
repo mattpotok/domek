@@ -24,7 +24,6 @@ type discoverCompetitorRate struct {
 	Discover         bool    `json:"discover"`
 }
 
-// TODO replace this with
 type discoverLegacyRates struct {
 	Dataset []struct {
 		Type           string  `json:"__type"`
@@ -41,34 +40,28 @@ type discoverLegacyRates struct {
 
 type discover struct{}
 
-func getDiscoverCompetitorRates(client *http.Client, productId string) (*discoverCompetitorRates, error) {
-	url := "https://www.discoverbank.com/rates/competitor/snapshot.json?=&=&aff=NAT&product=" + productId
+func (discover *discover) getCdAccount(client *http.Client) (*CDAccount, error) {
+	account := &CDAccount{Name: discover.getName(), CDs: []CD{}}
 
+	url := "https://www.discoverbank.com/rates/competitor/snapshot.json?=&=&aff=NAT&product=004"
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, err
+		return account, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return account, errors.New("unexpected status code: " + resp.Status)
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return account, err
 	}
 
-	var rates discoverCompetitorRates
-	if err = json.Unmarshal(body, &rates); err != nil {
-		return nil, err
-	}
-
-	return &rates, nil
-}
-
-func (discover *discover) getCdAccount(client *http.Client) (*CDAccount, error) {
-	account := &CDAccount{Name: discover.getName(), CDs: []CD{}}
-
-	discoverRates, err := getDiscoverCompetitorRates(client, "004")
-	if err != nil {
-		return account, nil
+	var discoverRates discoverCompetitorRates
+	if err = json.Unmarshal(body, &discoverRates); err != nil {
+		return account, err
 	}
 
 	for _, rate := range discoverRates.CompetitorRates {
@@ -89,6 +82,7 @@ func (discover *discover) getCdAccount(client *http.Client) (*CDAccount, error) 
 		return account, errors.New("no CDs found")
 	}
 
+	account.sortCdsByTerm()
 	return account, nil
 }
 
@@ -96,7 +90,6 @@ func (discover *discover) getName() string {
 	return "Discover"
 }
 
-// TODO figure out if the shape of savings accounts is the same for competitor rates
 func (discover *discover) getSavingsAccount(client *http.Client) (*SavingsAccount, error) {
 	account := &SavingsAccount{Name: discover.getName()}
 
@@ -104,6 +97,10 @@ func (discover *discover) getSavingsAccount(client *http.Client) (*SavingsAccoun
 	resp, err := client.Get(url)
 	if err != nil {
 		return account, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return account, errors.New("unexpected status code: " + resp.Status)
 	}
 
 	defer resp.Body.Close()

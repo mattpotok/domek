@@ -30,9 +30,8 @@ func (fidelity *fidelity) getCdAccount(client *http.Client) (*CDAccount, error) 
 		return account, err
 	}
 
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return account, err
+	if resp.StatusCode != http.StatusOK {
+		return account, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	encoding := resp.Header.Get("Content-Encoding")
@@ -40,6 +39,7 @@ func (fidelity *fidelity) getCdAccount(client *http.Client) (*CDAccount, error) 
 		return account, fmt.Errorf("encoding '%s' is not 'gzip'", encoding)
 	}
 
+	defer resp.Body.Close()
 	reader, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		return account, err
@@ -80,6 +80,11 @@ func (fidelity *fidelity) getCdAccount(client *http.Client) (*CDAccount, error) 
 		account.CDs = append(account.CDs, cd)
 	})
 
+	if len(account.CDs) <= 0 {
+		return account, errors.New("no CDs found")
+	}
+
+	account.sortCdsByTerm()
 	return account, nil
 }
 
