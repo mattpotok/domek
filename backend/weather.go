@@ -54,7 +54,8 @@ type OpenWeatherCurrentWeather struct {
 
 // TODO return the weather
 func getCurrentWeather() *OpenWeatherCurrentWeather {
-	openWeatherApiKey := "8d9e82c58e8b61001c721cd6b037c39e"
+	// Get the OpenWeather API key from configuration
+	openWeatherApiKey := "TODO"
 	latitude, longitude := "42.4154", "-71.1565"
 
 	request := fmt.Sprintf(
